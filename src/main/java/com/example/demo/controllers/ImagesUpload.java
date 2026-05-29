@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.demo.entities.PhotoEntity;
 import com.example.demo.service.CloudinaryServices;
+import com.example.demo.service.InsertPhotoIdDB;
 
 
 @RestController
@@ -19,19 +21,20 @@ import com.example.demo.service.CloudinaryServices;
 public class ImagesUpload {
 
     private final CloudinaryServices cloudinaryService;
+    private final InsertPhotoIdDB insertPhotoIdDB;
 
-    public ImagesUpload(CloudinaryServices cloudinaryService) {
+    public ImagesUpload(CloudinaryServices cloudinaryService,InsertPhotoIdDB insertPhotoIdDB) {
         this.cloudinaryService = cloudinaryService;
+        this.insertPhotoIdDB = insertPhotoIdDB;
     }
 
-  @PostMapping("/upload")
-    public List<ResponseEntity<Map<?,?>>> uploadImage(@RequestParam("file") MultipartFile[] files) {
+    @PostMapping("/upload")
+    public ResponseEntity<List<Map<?,?>>> uploadImage(@RequestParam("file") MultipartFile[] files) {
 
-        List<ResponseEntity<Map<?,?>>> answers = new ArrayList<>();
+        List<Map<?,?>> answers = new ArrayList<>();
 
         if (files.length == 0) {
-            answers.add(ResponseEntity.badRequest().body(Map.of("error","Please select a file to upload.")));
-            return answers;
+            return ResponseEntity.badRequest().body(List.of(Map.of("error","Please select a file to upload.")));
         }
         
         try {
@@ -39,16 +42,23 @@ public class ImagesUpload {
             for(MultipartFile e : files) {
 
                 Map<?,?> data = cloudinaryService.upload(e);
-                answers.add(ResponseEntity.ok(data));
+
+                String publicId = (String) data.get("display_name");
+
+                PhotoEntity newPhoto = new PhotoEntity();
+                newPhoto.setPhotoid(publicId); // Assuming setId handles the Cloudinary ID
+                newPhoto.setUsername(null);   // Explicitly setting name as null as requested
+                
+                insertPhotoIdDB.insertPhotoId(newPhoto);
+
+                answers.add(data);
 
             }
 
-            return answers;
+            return ResponseEntity.ok(answers);
           
         } catch (Exception e) {
-            
-            answers.add(ResponseEntity.status(500).body(Map.of("error", e.getMessage())));
-            return answers;
+            return ResponseEntity.status(500).body(List.of(Map.of("error", e.getMessage())));
         }
     }
     
