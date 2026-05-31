@@ -21,11 +21,11 @@ import com.example.demo.service.InsertPhotoIdDB;
 public class ImagesUpload {
 
     private final CloudinaryServices cloudinaryService;
-    private final InsertPhotoIdDB insertPhotoIdDB;
+    private final com.example.demo.service.PhotoFaceService photoFaceService;
 
-    public ImagesUpload(CloudinaryServices cloudinaryService,InsertPhotoIdDB insertPhotoIdDB) {
+    public ImagesUpload(CloudinaryServices cloudinaryService, com.example.demo.service.PhotoFaceService photoFaceService) {
         this.cloudinaryService = cloudinaryService;
-        this.insertPhotoIdDB = insertPhotoIdDB;
+        this.photoFaceService = photoFaceService;
     }
 
     @PostMapping("/upload")
@@ -43,13 +43,9 @@ public class ImagesUpload {
 
                 Map<?,?> data = cloudinaryService.upload(e);
 
-                String publicId = (String) data.get("display_name");
+                String url = (String) data.get("url");
 
-                PhotoEntity newPhoto = new PhotoEntity();
-                newPhoto.setPhotoid(publicId); // Assuming setId handles the Cloudinary ID
-                newPhoto.setUsername(null);   // Explicitly setting name as null as requested
-                
-                insertPhotoIdDB.insertPhotoId(newPhoto);
+                photoFaceService.processAndSave(url);
 
                 answers.add(data);
 

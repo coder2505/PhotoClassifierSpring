@@ -10,6 +10,6 @@ public class PhotoEntity{
 
     @Id
     String photoid;
-
     String username;
+    boolean has_faces;
 }
