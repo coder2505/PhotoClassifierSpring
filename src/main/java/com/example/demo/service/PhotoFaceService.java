@@ -4,19 +4,25 @@ package com.example.demo.service;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.example.demo.configuration.PythonMicroservice;
 import com.example.demo.entities.HasFacesResponse;
 import com.example.demo.entities.PhotoEntity;
 import com.example.demo.repository.PhotoRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class PhotoFaceService {
 
-    private final WebClient webClient;
+    private final PythonMicroservice pythonMicroservice;
     private final PhotoRepository photoRepository;
+    private final ImageVectorEmbedding imageVectorEmbedding;
 
-    public PhotoFaceService(PhotoRepository photoRepository) {
+    public PhotoFaceService(PhotoRepository photoRepository, ImageVectorEmbedding imageVectorEmbedding, PythonMicroservice pythonMicroservice) {
         this.photoRepository = photoRepository;
-        this.webClient = WebClient.create("http://localhost:8000");
+        this.imageVectorEmbedding = imageVectorEmbedding;
+        this.pythonMicroservice = pythonMicroservice;
     }
 
     /**
@@ -25,7 +31,7 @@ public class PhotoFaceService {
      */
     public void processAndSave(String imageUrl) {
         // Retrieve has-faces status using WebClient
-        HasFacesResponse hasFacesResponse = this.webClient.get()
+        HasFacesResponse hasFacesResponse = pythonMicroservice.webClient().get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/has-faces")
                         .queryParam("url", imageUrl)
@@ -46,6 +52,12 @@ public class PhotoFaceService {
         photo.setHas_faces(hasFaces);
 
         photoRepository.save(photo);
+
+           if(hasFaces){
+
+            log.info(imageVectorEmbedding.getImageEmbeddings(imageUrl).toString());
+
+            }
     }
 
     private String extractPhotoIdFromUrl(String url) {
