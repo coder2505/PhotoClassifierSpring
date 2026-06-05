@@ -2,7 +2,6 @@ package com.example.demo.service;
 
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import com.example.demo.configuration.PythonMicroservice;
 import com.example.demo.entities.HasFacesResponse;
@@ -18,17 +17,16 @@ public class PhotoFaceService {
     private final PythonMicroservice pythonMicroservice;
     private final PhotoRepository photoRepository;
     private final ImageVectorEmbedding imageVectorEmbedding;
+    private final SaveToPinecone saveToPinecone;
 
-    public PhotoFaceService(PhotoRepository photoRepository, ImageVectorEmbedding imageVectorEmbedding, PythonMicroservice pythonMicroservice) {
+    public PhotoFaceService(PhotoRepository photoRepository, ImageVectorEmbedding imageVectorEmbedding, PythonMicroservice pythonMicroservice, SaveToPinecone saveToPinecone) {
         this.photoRepository = photoRepository;
         this.imageVectorEmbedding = imageVectorEmbedding;
         this.pythonMicroservice = pythonMicroservice;
+        this.saveToPinecone = saveToPinecone;
     }
 
-    /**
-     * Service method to check if the image has faces and save the entity to the DB.
-     * Only input is the imageUrl.
-     */
+
     public void processAndSave(String imageUrl) {
         // Retrieve has-faces status using WebClient
         HasFacesResponse hasFacesResponse = pythonMicroservice.webClient().get()
@@ -53,11 +51,9 @@ public class PhotoFaceService {
 
         photoRepository.save(photo);
 
-           if(hasFaces){
-
-            log.info(imageVectorEmbedding.getImageEmbeddings(imageUrl).toString());
-
-            }
+        if (hasFaces) {
+            saveToPinecone.SaveImageEmbedding(imageVectorEmbedding.getImageEmbeddings(imageUrl), photoId);
+        }
     }
 
     private String extractPhotoIdFromUrl(String url) {

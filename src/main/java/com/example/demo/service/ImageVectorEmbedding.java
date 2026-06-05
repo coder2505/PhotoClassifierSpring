@@ -20,7 +20,7 @@ public class ImageVectorEmbedding {
         this.pythonMicroservice = pythonMicroservice;
     }
 
-    public ArrayList<Double> getImageEmbeddings(String imageUrl) {
+    public ArrayList<Float> getImageEmbeddings(String imageUrl) {
 
         ImagesEmbedding i = pythonMicroservice.webClient().post().uri(uriBuilder -> uriBuilder
                 .path("/embedding")

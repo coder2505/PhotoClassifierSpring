@@ -7,6 +7,6 @@ import lombok.Data;
 @Data
 public class ImagesEmbedding {
 
-    ArrayList<Double> embedding;
+    ArrayList<Float> embedding;
     
 }
