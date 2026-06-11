@@ -27,7 +27,7 @@ public class PhotoFaceService {
     }
 
 
-    public void processAndSave(String imageUrl) {
+    public boolean HasFaces(String imageUrl) {
         // Retrieve has-faces status using WebClient
         HasFacesResponse hasFacesResponse = pythonMicroservice.webClient().get()
                 .uri(uriBuilder -> uriBuilder
@@ -38,22 +38,31 @@ public class PhotoFaceService {
                 .bodyToMono(HasFacesResponse.class)
                 .block();
 
-        boolean hasFaces = hasFacesResponse != null ? hasFacesResponse.isHas_faces() : false;
+        if (hasFacesResponse != null) {
+            return hasFacesResponse.isHas_faces();
+        }
 
-        // Parse photoid (display_name/filename) from the Cloudinary URL
+        return false;
+
+    }
+
+    public void saveToCloudinary(String imageUrl) {
+
         String photoId = extractPhotoIdFromUrl(imageUrl);
 
         // Populate and save entity to database
         PhotoEntity photo = new PhotoEntity();
         photo.setPhotoid(photoId);
         photo.setUsername(null);
-        photo.setHas_faces(hasFaces);
+        photo.setHas_faces(true);
 
         photoRepository.save(photo);
 
-        if (hasFaces) {
-            saveToPinecone.SaveImageEmbedding(imageVectorEmbedding.getImageEmbeddings(imageUrl), photoId);
-        }
+    }
+
+    public void saveToPinecone(String imageUrl) {
+        String photoId = extractPhotoIdFromUrl(imageUrl);
+        saveToPinecone.SaveImageEmbedding(imageVectorEmbedding.getImageEmbeddings(imageUrl), photoId);
     }
 
     private String extractPhotoIdFromUrl(String url) {
