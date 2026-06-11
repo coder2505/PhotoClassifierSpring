@@ -52,15 +52,9 @@ public class ImagesUpload {
                 Map<?,?> data = cloudinaryService.upload(e);
                 String url = (String) data.get("url");
 
-                boolean hasFaces = photoFaceService.HasFaces(url);
-
-                if(hasFaces){
-
-                    photoFaceService.saveToCloudinary(url);
                     photoFaceService.saveToPinecone(url);
 
                     answers.add(data);
-                }
 
 
             }
@@ -85,6 +79,5 @@ public class ImagesUpload {
         return ResponseEntity.ok(resp);
 
     }
-//
-    
+
 }

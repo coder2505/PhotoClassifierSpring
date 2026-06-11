@@ -5,8 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.demo.configuration.PythonMicroservice;
 import com.example.demo.entities.HasFacesResponse;
-import com.example.demo.entities.PhotoEntity;
-import com.example.demo.repository.PhotoRepository;
+
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,12 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 public class PhotoFaceService {
 
     private final PythonMicroservice pythonMicroservice;
-    private final PhotoRepository photoRepository;
     private final ImageVectorEmbedding imageVectorEmbedding;
     private final SaveToPinecone saveToPinecone;
 
-    public PhotoFaceService(PhotoRepository photoRepository, ImageVectorEmbedding imageVectorEmbedding, PythonMicroservice pythonMicroservice, SaveToPinecone saveToPinecone) {
-        this.photoRepository = photoRepository;
+    public PhotoFaceService(ImageVectorEmbedding imageVectorEmbedding, PythonMicroservice pythonMicroservice, SaveToPinecone saveToPinecone) {
         this.imageVectorEmbedding = imageVectorEmbedding;
         this.pythonMicroservice = pythonMicroservice;
         this.saveToPinecone = saveToPinecone;
@@ -43,20 +40,6 @@ public class PhotoFaceService {
         }
 
         return false;
-
-    }
-
-    public void saveToCloudinary(String imageUrl) {
-
-        String photoId = extractPhotoIdFromUrl(imageUrl);
-
-        // Populate and save entity to database
-        PhotoEntity photo = new PhotoEntity();
-        photo.setPhotoid(photoId);
-        photo.setUsername(null);
-        photo.setHas_faces(true);
-
-        photoRepository.save(photo);
 
     }
 
