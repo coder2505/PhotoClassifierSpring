@@ -1,9 +1,11 @@
 package com.example.demo.controllers;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import com.example.demo.service.UploadToPythonMicroservice;
 import org.springframework.http.ResponseEntity;
@@ -37,30 +39,53 @@ public class ImagesUpload {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<List<Map<?,?>>> uploadImage(@RequestParam("file") MultipartFile[] files) {
-
-        List<Map<?,?>> answers = new ArrayList<>();
+    public ResponseEntity<List<Map<?, ?>>> uploadImage(@RequestParam("file") MultipartFile[] files) {
 
         if (files.length == 0) {
-            return ResponseEntity.badRequest().body(List.of(Map.of("error","Please select a file to upload.")));
+            return ResponseEntity.badRequest().body(List.of(Map.of("error", "Please select a file to upload.")));
         }
-        
+
         try {
 
-            for(MultipartFile e : files) {
 
-                Map<?,?> data = cloudinaryService.upload(e);
-                String url = (String) data.get("url");
+            List<CompletableFuture<Map>> uploadFutures = Arrays.stream(files)
+                    .map(file -> {
+                        return CompletableFuture.supplyAsync(() -> {
+                            try {
+                                return cloudinaryService.upload(file);
+                            } catch (IOException ex) {
+                                throw new CompletionException("Failed to upload file to Cloudinary", ex);
+                            }
+                        }).thenCompose((map)->map).
+                                thenApply(data -> {
+                            String url = (String) data.get("url");
+                            photoFaceService.saveToPinecone(url);
+                            return data;
+                        }).exceptionally(ex -> {
+                            log.error("Error processing file upload: {}", ex.getMessage());
+                            return null;
+                        });
 
-                    photoFaceService.saveToPinecone(url);
+                    })
+                    .toList();
 
-                    answers.add(data);
+            CompletableFuture.allOf(
+                    uploadFutures.toArray(new CompletableFuture[0])
+            ).join();
 
+            List<Map<?, ?>> answers = uploadFutures.stream()
+                    .map(f -> (Map<?, ?>) f.join())
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
 
+            if (answers.isEmpty()) {
+                return ResponseEntity.status(500).body(List.of(Map.of("error", "All file uploads failed.")));
             }
 
             return ResponseEntity.ok(answers);
-          
+
+
+
         } catch (Exception e) {
             return ResponseEntity.status(500).body(List.of(Map.of("error", e.getMessage())));
         }
@@ -74,7 +99,7 @@ public class ImagesUpload {
         }
 
         List<Float> embedding = uploadToPythonMicroservice.getImageEmbedding(facePhoto);
-        List<String> resp =  queryVectorService.Query(embedding);
+        List<String> resp = queryVectorService.Query(embedding);
 
         return ResponseEntity.ok(resp);
 
