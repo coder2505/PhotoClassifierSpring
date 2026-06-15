@@ -7,7 +7,7 @@ import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableAsync;
 
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
+@SpringBootApplication
 @EnableAsync
 public class DemoApplication {
 
